@@ -71,12 +71,35 @@ jobs:
         run: ./build/cpuscope_cli --version
 
   lint:
-    name: Lint (Placeholder)
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder lint
-        run: echo "Lint checks will be added later"
+
+      - name: Install lint dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build ccache clang-format-18 clang-tidy clang-17
+      
+      - name: Check clang-format version
+        run: clang-format --version
+
+      - name: Configure compile commands
+        run: |
+          mkdir -p build
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCPUSCOPE_BUILD_TESTS=ON \
+            -DCMAKE_C_COMPILER=clang-17 \
+            -DCMAKE_CXX_COMPILER=clang++-17 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Check formatting
+        run: scripts/check-format.sh
+
+      - name: Run static analysis
+        run: scripts/lint.sh
 
   sanitizer:
     name: Sanitizer Build
