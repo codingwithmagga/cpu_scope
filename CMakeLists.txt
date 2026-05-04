@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(cpuscope VERSION 0.1.0 LANGUAGES CXX)
+project(cpuscope VERSION 0.1.0 LANGUAGES C CXX)
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "In-source builds are not allowed. Please use a separate build directory.")
 endif()
 
-option(CI "Enable CI build mode and treat warnings as errors" OFF)
+option(CPUSCOPE_WERROR "Enable CI build mode and treat warnings as errors" OFF)
 option(ENABLE_MARCH_NATIVE "Enable -march=native optimization" OFF)
 option(CPUSCOPE_BUILD_TESTS "Build tests" OFF)
 
@@ -20,7 +20,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
   add_compile_options(-Wall -Wextra -Wpedantic)
-  if(CI)
+  if(CPUSCOPE_WERROR)
     add_compile_options(-Werror)
   endif()
   if(ENABLE_MARCH_NATIVE)
