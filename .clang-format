@@ -1,5 +1,5 @@
 BasedOnStyle: Google
-ColumnLimit: 100
+ColumnLimit: 160
 IndentWidth: 4
 AccessModifierOffset: -4
 BreakBeforeBraces: Allman

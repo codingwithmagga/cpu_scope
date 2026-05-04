@@ -5,7 +5,7 @@
 namespace cpuscope
 {
 
-std::string get_version()
+inline std::string get_version()
 {
     return "0.1.0";
 }
