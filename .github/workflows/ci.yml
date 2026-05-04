@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build_test:
+    name: Build & Test Matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc-13, clang-17]
+        build_type: [Debug, Release]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build ccache
+          if [ "${{ matrix.compiler }}" = "gcc-13" ]; then
+            sudo apt-get install -y gcc-13 g++-13
+          else
+            sudo apt-get install -y clang-17
+          fi
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ matrix.compiler }}-${{ matrix.build_type }}-
+            ${{ runner.os }}-ccache-${{ matrix.compiler }}-
+
+      - name: Configure
+        run: |
+          mkdir -p build
+          if [ "${{ matrix.compiler }}" = "gcc-13" ]; then
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+              -DCPUSCOPE_BUILD_TESTS=ON \
+              -DCPUSCOPE_WERROR=ON \
+              -DCMAKE_C_COMPILER=gcc-13 \
+              -DCMAKE_CXX_COMPILER=g++-13 \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          else
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+              -DCPUSCOPE_BUILD_TESTS=ON \
+              -DCPUSCOPE_WERROR=ON \
+              -DCMAKE_C_COMPILER=clang-17 \
+              -DCMAKE_CXX_COMPILER=clang++-17 \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          fi
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Smoke test
+        if: matrix.build_type == 'Release'
+        run: ./build/cpuscope_cli --version
+
+  lint:
+    name: Lint (Placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder lint
+        run: echo "Lint checks will be added later"
+
+  sanitizer:
+    name: Sanitizer Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build ccache clang-17
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-clang-17-Release-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-clang-17-Release-
+            ${{ runner.os }}-ccache-clang-17-
+
+      - name: Configure sanitizer build
+        run: |
+          mkdir -p build-sanitizer
+          cmake -S . -B build-sanitizer -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCPUSCOPE_BUILD_TESTS=ON \
+            -DCPUSCOPE_WERROR=ON \
+            -DCMAKE_C_COMPILER=clang-17 \
+            -DCMAKE_CXX_COMPILER=clang++-17 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+      - name: Build sanitizer build
+        run: cmake --build build-sanitizer --parallel
+
+      - name: Run sanitizer tests
+        run: |
+          export ASAN_OPTIONS=halt_on_error=1:detect_leaks=0
+          export UBSAN_OPTIONS=halt_on_error=1
+          ctest --test-dir build-sanitizer --output-on-failure
