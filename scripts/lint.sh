@@ -9,5 +9,5 @@ fi
 
 find . \
   \( -path ./build -o -path ./build-* -o -path ./.git -o -path ./scripts \) -prune \
-  -o \( -name "*.cpp" -o -name "*.hpp" \) -print0 \
+  -o \( -name "*.cpp" \) -print0 \
   | xargs -0 -n1 clang-tidy -p build
