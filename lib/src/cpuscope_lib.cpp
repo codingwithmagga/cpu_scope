@@ -3,6 +3,6 @@
 namespace cpuscope
 {
 
-    // Implementation is header-only for the initial placeholder functionality.
+// Implementation is header-only for the initial placeholder functionality.
 
-} // namespace cpuscope
+}  // namespace cpuscope
