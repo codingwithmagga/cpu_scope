@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.25)
 
 project(cpuscope VERSION 0.1.0 LANGUAGES C CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "In-source builds are not allowed. Please use a separate build directory.")
 endif()
