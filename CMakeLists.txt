@@ -8,6 +8,7 @@ endif()
 
 option(CI "Enable CI build mode and treat warnings as errors" OFF)
 option(ENABLE_MARCH_NATIVE "Enable -march=native optimization" OFF)
+option(CPUSCOPE_BUILD_TESTS "Build tests" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -34,5 +35,21 @@ endif()
 find_package(Threads REQUIRED)
 find_package(LLVM QUIET)
 
-add_subdirectory(src)
-add_subdirectory(tests)
+if(CPUSCOPE_BUILD_TESTS)
+  include(CTest)
+  enable_testing()
+
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.17.0
+  )
+  FetchContent_MakeAvailable(googletest)
+endif()
+
+add_subdirectory(lib)
+add_subdirectory(cli)
+if(CPUSCOPE_BUILD_TESTS)
+  add_subdirectory(tests)
+endif()

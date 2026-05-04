@@ -1,9 +1,6 @@
-add_executable(cpuscope_tests test_main.cpp)
+add_executable(cpuscope_tests test_dummy.cpp)
 
-target_link_libraries(cpuscope_tests PRIVATE cpuscope_lib)
+target_link_libraries(cpuscope_tests PRIVATE gtest_main cpuscope_lib)
 
-set_target_properties(cpuscope_tests PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
-)
-
-add_test(NAME cpuscope_tests COMMAND cpuscope_tests)
+include(GoogleTest)
+gtest_discover_tests(cpuscope_tests)
