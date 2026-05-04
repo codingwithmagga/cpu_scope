@@ -79,7 +79,7 @@ jobs:
       - name: Install lint dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build ccache clang-format clang-tidy clang-17
+          sudo apt-get install -y cmake ninja-build ccache clang-format-18 clang-tidy clang-17
 
       - name: Configure compile commands
         run: |
