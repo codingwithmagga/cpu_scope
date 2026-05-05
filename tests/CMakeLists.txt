@@ -1,4 +1,4 @@
-add_executable(cpuscope_tests test_dummy.cpp test_perf_event.cpp)
+add_executable(cpuscope_tests test_perf_event.cpp)
 
 target_link_libraries(cpuscope_tests PRIVATE gtest_main cpuscope_lib)
 
