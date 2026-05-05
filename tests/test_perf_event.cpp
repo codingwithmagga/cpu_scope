@@ -2,7 +2,8 @@
 
 #include "perf_event.hpp"
 
-TEST(PerfEvent, Ctor)
+TEST(PerfEvent, OpenPerfEvent)
 {
-    PerfEvent perf_event;
+    auto res = PerfEvent::open();
+    EXPECT_TRUE(res);
 }

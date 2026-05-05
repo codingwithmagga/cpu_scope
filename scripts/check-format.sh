@@ -4,7 +4,7 @@ set -e
 FAILED=0
 
 while IFS= read -r -d '' file; do
-  if ! diff -u "$file" <(clang-format "$file"); then
+  if ! diff -u "$file" <(clang-format-18 "$file"); then
     FAILED=1
   fi
 done < <(
