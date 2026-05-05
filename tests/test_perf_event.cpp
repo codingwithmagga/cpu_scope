@@ -4,6 +4,7 @@
 
 TEST(PerfEvent, OpenPerfEvent)
 {
-    auto res = PerfEvent::open();
+    PerfEvent::Config config;
+    auto res = PerfEvent::open(config);
     EXPECT_TRUE(res);
 }

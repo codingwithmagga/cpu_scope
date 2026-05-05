@@ -3,5 +3,11 @@
 class PerfEvent
 {
 public:
-    static bool open() noexcept;
+    struct Config
+    {
+        int pid = 0;
+        int cpu = -1;
+    };
+
+    static bool open(const Config& config) noexcept;
 };
