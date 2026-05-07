@@ -6,10 +6,17 @@
 class PerfEvent
 {
 public:
+    enum class Scope
+    {
+        CPU,
+        Process
+    };
+
     struct Config
     {
         pid_t pid = 0;
         int cpu = -1;
+        Scope scope = Scope::CPU;
     };
 
     struct IPerfSysCall

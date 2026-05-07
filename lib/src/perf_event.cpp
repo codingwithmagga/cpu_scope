@@ -5,12 +5,15 @@
 
 bool PerfEvent::open(const Config& config, IPerfSysCall& perfSysCall) noexcept
 {
-    if (config.pid < 0 || config.cpu < -1)
+    if ((config.scope == Scope::CPU && config.cpu < 0) || (config.scope == Scope::Process && config.pid < 0))
     {
         return false;
     }
 
-    if (perfSysCall.perf_event_open(nullptr, config.pid, config.cpu, -1, 0) < 0)
+    pid_t pid = Scope::CPU == config.scope ? -1 : config.pid;
+    int cpu = Scope::CPU == config.scope ? config.cpu : -1;
+
+    if (perfSysCall.perf_event_open(nullptr, pid, cpu, -1, 0) < 0)
     {
         return false;
     }
