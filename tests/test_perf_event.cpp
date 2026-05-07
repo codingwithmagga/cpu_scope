@@ -42,11 +42,22 @@ TEST_F(PerfEventTest, OpenPerfEventCustomConfig)
     EXPECT_TRUE(res);
 }
 
-TEST_F(PerfEventTest, OpenPerfEventWithInvalidPidCPUConfig)
+TEST_F(PerfEventTest, OpenPerfEventWithInvalidCPUConfig)
+{
+    PerfEvent::Config config;
+    config.cpu = -1;
+    config.scope = PerfEvent::Scope::CPU;
+
+    auto res = PerfEvent::open(config, perfSysCall);
+
+    EXPECT_FALSE(res);
+}
+
+TEST_F(PerfEventTest, OpenPerfEventWithInvalidProcessConfig)
 {
     PerfEvent::Config config;
     config.pid = -1;
-    config.cpu = -1;
+    config.scope = PerfEvent::Scope::Process;
 
     auto res = PerfEvent::open(config, perfSysCall);
 
