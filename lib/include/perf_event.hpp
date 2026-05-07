@@ -18,5 +18,10 @@ public:
         virtual int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) = 0;
     };
 
+    struct LinuxPerfSysCall final : IPerfSysCall
+    {
+        int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) noexcept override;
+    };
+
     static bool open(const Config& config, IPerfSysCall& perfSysCall) noexcept;
 };
