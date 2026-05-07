@@ -1,13 +1,22 @@
 #pragma once
 
+#include <linux/perf_event.h>
+#include <sys/types.h>
+
 class PerfEvent
 {
 public:
     struct Config
     {
-        int pid = 0;
+        pid_t pid = 0;
         int cpu = -1;
     };
 
-    static bool open(const Config& config) noexcept;
+    struct IPerfSysCall
+    {
+        virtual ~IPerfSysCall() = default;
+        virtual int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) = 0;
+    };
+
+    static bool open(const Config& config, IPerfSysCall& perfSysCall) noexcept;
 };
