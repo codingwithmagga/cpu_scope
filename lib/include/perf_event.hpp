@@ -12,11 +12,19 @@ public:
         Process
     };
 
+    enum class Event
+    {
+        CPU_CYCLES,
+        HW_Instructions,
+        HW_Cache_Misses
+    };
+
     struct Config
     {
         pid_t pid = 0;
         int cpu = -1;
         Scope scope = Scope::CPU;
+        Event event = Event::CPU_CYCLES;
     };
 
     struct IPerfSysCall
