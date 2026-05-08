@@ -1,15 +1,29 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <linux/perf_event.h>
+#include <sys/types.h>
 
 #include <cstring>
 #include <utility>
 
 #include "perf_event.hpp"
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members,misc-non-private-member-variables-in-classes)
 MATCHER_P(PerfAttrEq, expected, "")
 {
     return arg && arg->type == expected.type && arg->size == expected.size && arg->config == expected.config;
 }
+// NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members,misc-non-private-member-variables-in-classes)
+
+struct PerfAttrEqMatcher
+{
+    perf_event_attr expected;
+
+    bool operator()(const perf_event_attr* arg) const
+    {
+        return arg && arg->type == expected.type && arg->size == expected.size && arg->config == expected.config;
+    }
+};
 
 struct FakeSysCalls : PerfEvent::ISysCalls
 {
@@ -17,12 +31,12 @@ struct FakeSysCalls : PerfEvent::ISysCalls
 
     MOCK_METHOD(int, close, (int), (override));
 
-    MOCK_METHOD(ssize_t, read, (int fd, void* buf, size_t count), ());
+    MOCK_METHOD(ssize_t, read, (int file_descriptor, void* buf, size_t count), ());
 };
 
 class PerfEventTest : public testing::Test
 {
-protected:
+public:
     void SetUp() override
     {
         std::memset(&m_attr, 0, sizeof(m_attr));
@@ -32,7 +46,7 @@ protected:
     }
 
     FakeSysCalls m_sysCalls;
-    perf_event_attr m_attr;
+    perf_event_attr m_attr{};
 };
 
 TEST_F(PerfEventTest, PerfEventCPUScope)
@@ -42,12 +56,12 @@ TEST_F(PerfEventTest, PerfEventCPUScope)
     config.cpu = 2;
     config.pid = 1000;  // Automatically set to -1 for CPU scope
     config.event = PerfEvent::Event::CPU_CYCLES;
-    int fd = 42;
-    uint64_t counterValue = 123456789;
+    const int file_descriptor = 42;
+    const uint64_t counterValue = 123456789;
 
-    EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), -1, 2, -1, 0)).WillOnce(testing::Return(fd));
-    EXPECT_CALL(m_sysCalls, close(fd)).WillOnce(testing::Return(0));
-    EXPECT_CALL(m_sysCalls, read(fd, ::testing::_, sizeof(counterValue)))
+    EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), -1, 2, -1, 0)).WillOnce(testing::Return(file_descriptor));
+    EXPECT_CALL(m_sysCalls, close(file_descriptor)).WillOnce(testing::Return(0));
+    EXPECT_CALL(m_sysCalls, read(file_descriptor, ::testing::_, sizeof(counterValue)))
         .WillOnce(testing::Invoke(
             [&](int, void* buf, size_t)
             {
@@ -72,10 +86,10 @@ TEST_F(PerfEventTest, OpenPerfEventProcessScope)
     config.scope = PerfEvent::Scope::Process;
     config.event = PerfEvent::Event::HW_Instructions;
     m_attr.config = PERF_COUNT_HW_INSTRUCTIONS;
-    int fd = 44;
+    const int file_descriptor = 44;
 
-    EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), 1234, -1, -1, 0)).WillOnce(testing::Return(fd));
-    EXPECT_CALL(m_sysCalls, close(fd)).WillOnce(testing::Return(0));
+    EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), 1234, -1, -1, 0)).WillOnce(testing::Return(file_descriptor));
+    EXPECT_CALL(m_sysCalls, close(file_descriptor)).WillOnce(testing::Return(0));
 
     auto res = PerfEvent::open(config, m_sysCalls);
 
@@ -89,10 +103,10 @@ TEST_F(PerfEventTest, OpenPerfEventCacheMisses)
     config.scope = PerfEvent::Scope::Process;
     config.event = PerfEvent::Event::HW_Cache_Misses;
     m_attr.config = PERF_COUNT_HW_CACHE_MISSES;
-    int fd = 42;
+    const int file_descriptor = 42;
 
-    EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), 1234, -1, -1, 0)).WillOnce(testing::Return(fd));
-    EXPECT_CALL(m_sysCalls, close(fd)).WillOnce(testing::Return(0));
+    EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), 1234, -1, -1, 0)).WillOnce(testing::Return(file_descriptor));
+    EXPECT_CALL(m_sysCalls, close(file_descriptor)).WillOnce(testing::Return(0));
 
     auto res = PerfEvent::open(config, m_sysCalls);
 
@@ -136,7 +150,7 @@ TEST_F(PerfEventTest, MoveCtorTransfersOwnership)
 
         ASSERT_TRUE(original.has_value());
 
-        PerfEvent moved(std::move(*original));
+        const PerfEvent moved(std::move(original.value()));
     }
 }
 
@@ -164,6 +178,6 @@ TEST_F(PerfEventTest, MoveAssignmentTransfersOwnership)
         ASSERT_TRUE(lhs.has_value());
         ASSERT_TRUE(rhs.has_value());
 
-        *lhs = std::move(*rhs);
+        lhs.value() = std::move(rhs.value());
     }
 }

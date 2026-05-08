@@ -1,39 +1,41 @@
 #include "perf_event.hpp"
 
+#include <linux/perf_event.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <unistd.h>
 
+#include <cstdint>
 #include <cstring>
 #include <optional>
-#include <utility>
 
-PerfEvent::PerfEvent(int fd, ISysCalls& sysCalls) noexcept : m_fd(fd), m_sysCalls(sysCalls) {}
+PerfEvent::PerfEvent(const int file_descriptor, ISysCalls& sysCalls) noexcept : m_file_descriptor(file_descriptor), m_sysCalls(sysCalls) {}
 
 PerfEvent::~PerfEvent() noexcept
 {
-    if (m_fd >= 0)
+    if (m_file_descriptor >= 0)
     {
-        m_sysCalls.close(m_fd);
+        m_sysCalls.close(m_file_descriptor);
     }
 }
 
-PerfEvent::PerfEvent(PerfEvent&& other) noexcept : m_fd(other.m_fd), m_sysCalls(other.m_sysCalls)
+PerfEvent::PerfEvent(PerfEvent&& other) noexcept : m_file_descriptor(other.m_file_descriptor), m_sysCalls(other.m_sysCalls)
 {
-    other.m_fd = -1;
+    other.m_file_descriptor = -1;
 }
 
 PerfEvent& PerfEvent::operator=(PerfEvent&& other) noexcept
 {
     if (this != &other)
     {
-        if (m_fd >= 0)
+        if (m_file_descriptor >= 0)
         {
-            m_sysCalls.close(m_fd);
+            m_sysCalls.close(m_file_descriptor);
         }
 
-        m_fd = other.m_fd;
+        m_file_descriptor = other.m_file_descriptor;
 
-        other.m_fd = -1;
+        other.m_file_descriptor = -1;
     }
 
     return *this;
@@ -46,8 +48,8 @@ std::optional<PerfEvent> PerfEvent::open(const Config& config, ISysCalls& sysCal
         return std::nullopt;
     }
 
-    pid_t pid = Scope::CPU == config.scope ? -1 : config.pid;
-    int cpu = Scope::CPU == config.scope ? config.cpu : -1;
+    const pid_t pid = Scope::CPU == config.scope ? -1 : config.pid;
+    const int cpu = Scope::CPU == config.scope ? config.cpu : -1;
 
     perf_event_attr attr{};
     std::memset(&attr, 0, sizeof(attr));
@@ -67,24 +69,24 @@ std::optional<PerfEvent> PerfEvent::open(const Config& config, ISysCalls& sysCal
             break;
     }
 
-    const int fd = sysCalls.perf_event_open(&attr, pid, cpu, -1, 0);
-    if (fd < 0)
+    const auto file_descriptor = sysCalls.perf_event_open(&attr, pid, cpu, -1, 0);
+    if (file_descriptor < 0)
     {
         return std::nullopt;
     }
 
-    return std::make_optional<PerfEvent>(PerfEvent(fd, sysCalls));
+    return std::make_optional<PerfEvent>(PerfEvent(file_descriptor, sysCalls));
 }
 
 std::optional<uint64_t> PerfEvent::read_counter() noexcept
 {
-    if (m_fd < 0)
+    if (m_file_descriptor < 0)
     {
         return std::nullopt;
     }
 
     uint64_t value = 0;
-    ssize_t bytesRead = m_sysCalls.read(m_fd, &value, sizeof(value));
+    const ssize_t bytesRead = m_sysCalls.read(m_file_descriptor, &value, sizeof(value));
     if (bytesRead != static_cast<ssize_t>(sizeof(value)))
     {
         return std::nullopt;
@@ -95,15 +97,16 @@ std::optional<uint64_t> PerfEvent::read_counter() noexcept
 
 int PerfEvent::LinuxSysCalls::perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) noexcept
 {
-    return ::syscall(SYS_perf_event_open, attr, pid, cpu, group_fd, flags);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+    return static_cast<int>(::syscall(SYS_perf_event_open, attr, pid, cpu, group_fd, flags));
 }
 
-int PerfEvent::LinuxSysCalls::close(int fd) noexcept
+int PerfEvent::LinuxSysCalls::close(int file_descriptor) noexcept
 {
-    return ::close(fd);
+    return ::close(file_descriptor);
 }
 
-ssize_t PerfEvent::LinuxSysCalls::read(int fd, void* buf, size_t count) noexcept
+ssize_t PerfEvent::LinuxSysCalls::read(int file_descriptor, void* buf, size_t count) noexcept
 {
-    return ::read(fd, buf, count);
+    return ::read(file_descriptor, buf, count);
 }

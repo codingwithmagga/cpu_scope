@@ -34,15 +34,15 @@ public:
     {
         virtual ~ISysCalls() = default;
         virtual int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) = 0;
-        virtual int close(int fd) = 0;
-        virtual ssize_t read(int fd, void* buf, size_t count) = 0;
+        virtual int close(int file_descriptor) = 0;
+        virtual ssize_t read(int file_descriptor, void* buf, size_t count) = 0;
     };
 
     struct LinuxSysCalls final : ISysCalls
     {
         int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) noexcept override;
-        int close(int fd) noexcept override;
-        ssize_t read(int fd, void* buf, size_t count) noexcept override;
+        int close(int file_descriptor) noexcept override;
+        ssize_t read(int file_descriptor, void* buf, size_t count) noexcept override;
     };
 
     ~PerfEvent() noexcept;
@@ -57,8 +57,8 @@ public:
     std::optional<uint64_t> read_counter() noexcept;
 
 private:
-    PerfEvent(int fd, ISysCalls& sysCalls) noexcept;
+    PerfEvent(const int file_descriptor, ISysCalls& sysCalls) noexcept;
 
-    int m_fd = -1;
+    int m_file_descriptor = -1;
     ISysCalls& m_sysCalls;
 };
