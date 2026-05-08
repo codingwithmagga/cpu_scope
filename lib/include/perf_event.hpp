@@ -3,6 +3,8 @@
 #include <linux/perf_event.h>
 #include <sys/types.h>
 
+#include <optional>
+
 class PerfEvent
 {
 public:
@@ -27,16 +29,32 @@ public:
         Event event = Event::CPU_CYCLES;
     };
 
-    struct IPerfSysCall
+    struct ISysCalls
     {
-        virtual ~IPerfSysCall() = default;
+        virtual ~ISysCalls() = default;
         virtual int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) = 0;
+        virtual int close(int fd) = 0;
     };
 
-    struct LinuxPerfSysCall final : IPerfSysCall
+    struct LinuxSysCalls final : ISysCalls
     {
         int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) noexcept override;
+        int close(int fd) noexcept override;
     };
 
-    static bool open(const Config& config, IPerfSysCall& perfSysCall) noexcept;
+    ~PerfEvent() noexcept;
+
+    PerfEvent(const PerfEvent&) = delete;
+    PerfEvent& operator=(const PerfEvent&) = delete;
+
+    PerfEvent(PerfEvent&& other) noexcept;
+    PerfEvent& operator=(PerfEvent&& other) noexcept;
+
+    static std::optional<PerfEvent> open(const Config& config, ISysCalls& sysCalls) noexcept;
+
+private:
+    PerfEvent(int fd, ISysCalls& sysCalls) noexcept;
+
+    int m_fd = -1;
+    ISysCalls& m_sysCalls;
 };
