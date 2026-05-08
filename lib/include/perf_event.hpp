@@ -3,6 +3,7 @@
 #include <linux/perf_event.h>
 #include <sys/types.h>
 
+#include <cstdint>
 #include <optional>
 
 class PerfEvent
@@ -34,12 +35,14 @@ public:
         virtual ~ISysCalls() = default;
         virtual int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) = 0;
         virtual int close(int fd) = 0;
+        virtual ssize_t read(int fd, void* buf, size_t count) = 0;
     };
 
     struct LinuxSysCalls final : ISysCalls
     {
         int perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) noexcept override;
         int close(int fd) noexcept override;
+        ssize_t read(int fd, void* buf, size_t count) noexcept override;
     };
 
     ~PerfEvent() noexcept;
@@ -51,6 +54,7 @@ public:
     PerfEvent& operator=(PerfEvent&& other) noexcept;
 
     static std::optional<PerfEvent> open(const Config& config, ISysCalls& sysCalls) noexcept;
+    std::optional<uint64_t> read_counter() noexcept;
 
 private:
     PerfEvent(int fd, ISysCalls& sysCalls) noexcept;

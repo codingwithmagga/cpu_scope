@@ -4,6 +4,8 @@
 #include <unistd.h>
 
 #include <cstring>
+#include <optional>
+#include <utility>
 
 PerfEvent::PerfEvent(int fd, ISysCalls& sysCalls) noexcept : m_fd(fd), m_sysCalls(sysCalls) {}
 
@@ -74,6 +76,23 @@ std::optional<PerfEvent> PerfEvent::open(const Config& config, ISysCalls& sysCal
     return std::make_optional<PerfEvent>(PerfEvent(fd, sysCalls));
 }
 
+std::optional<uint64_t> PerfEvent::read_counter() noexcept
+{
+    if (m_fd < 0)
+    {
+        return std::nullopt;
+    }
+
+    uint64_t value = 0;
+    ssize_t bytesRead = m_sysCalls.read(m_fd, &value, sizeof(value));
+    if (bytesRead != static_cast<ssize_t>(sizeof(value)))
+    {
+        return std::nullopt;
+    }
+
+    return value;
+}
+
 int PerfEvent::LinuxSysCalls::perf_event_open(const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags) noexcept
 {
     return ::syscall(SYS_perf_event_open, attr, pid, cpu, group_fd, flags);
@@ -82,4 +101,9 @@ int PerfEvent::LinuxSysCalls::perf_event_open(const perf_event_attr* attr, pid_t
 int PerfEvent::LinuxSysCalls::close(int fd) noexcept
 {
     return ::close(fd);
+}
+
+ssize_t PerfEvent::LinuxSysCalls::read(int fd, void* buf, size_t count) noexcept
+{
+    return ::read(fd, buf, count);
 }

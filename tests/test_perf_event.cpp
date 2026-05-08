@@ -16,6 +16,8 @@ struct FakeSysCalls : PerfEvent::ISysCalls
     MOCK_METHOD(int, perf_event_open, (const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags), (override));
 
     MOCK_METHOD(int, close, (int), (override));
+
+    MOCK_METHOD(ssize_t, read, (int fd, void* buf, size_t count), ());
 };
 
 class PerfEventTest : public testing::Test
@@ -33,7 +35,7 @@ protected:
     perf_event_attr m_attr;
 };
 
-TEST_F(PerfEventTest, OpenPerfEventCPUScope)
+TEST_F(PerfEventTest, PerfEventCPUScope)
 {
     PerfEvent::Config config;
     config.scope = PerfEvent::Scope::CPU;
@@ -41,13 +43,25 @@ TEST_F(PerfEventTest, OpenPerfEventCPUScope)
     config.pid = 1000;  // Automatically set to -1 for CPU scope
     config.event = PerfEvent::Event::CPU_CYCLES;
     int fd = 42;
+    uint64_t counterValue = 123456789;
 
     EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), -1, 2, -1, 0)).WillOnce(testing::Return(fd));
     EXPECT_CALL(m_sysCalls, close(fd)).WillOnce(testing::Return(0));
+    EXPECT_CALL(m_sysCalls, read(fd, ::testing::_, sizeof(counterValue)))
+        .WillOnce(testing::Invoke(
+            [&](int, void* buf, size_t)
+            {
+                *static_cast<uint64_t*>(buf) = counterValue;
+                return static_cast<ssize_t>(sizeof(counterValue));
+            }));
 
-    auto res = PerfEvent::open(config, m_sysCalls);
+    auto event = PerfEvent::open(config, m_sysCalls);
 
-    EXPECT_TRUE(res);
+    EXPECT_TRUE(event.has_value());
+
+    auto data = event->read_counter();
+    EXPECT_TRUE(data.has_value());
+    EXPECT_EQ(data.value(), counterValue);
 }
 
 TEST_F(PerfEventTest, OpenPerfEventProcessScope)
