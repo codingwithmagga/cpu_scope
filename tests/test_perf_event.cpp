@@ -3,7 +3,9 @@
 #include <linux/perf_event.h>
 #include <sys/types.h>
 
+#include <cstdint>
 #include <cstring>
+#include <optional>
 #include <utility>
 
 #include "perf_event.hpp"
@@ -15,16 +17,6 @@ MATCHER_P(PerfAttrEq, expected, "")
 }
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members,misc-non-private-member-variables-in-classes)
 
-struct PerfAttrEqMatcher
-{
-    perf_event_attr expected;
-
-    bool operator()(const perf_event_attr* arg) const
-    {
-        return arg && arg->type == expected.type && arg->size == expected.size && arg->config == expected.config;
-    }
-};
-
 struct FakeSysCalls : PerfEvent::ISysCalls
 {
     MOCK_METHOD(int, perf_event_open, (const perf_event_attr* attr, pid_t pid, int cpu, int group_fd, unsigned long flags), (override));
@@ -34,9 +26,10 @@ struct FakeSysCalls : PerfEvent::ISysCalls
     MOCK_METHOD(ssize_t, read, (int file_descriptor, void* buf, size_t count), ());
 };
 
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
 class PerfEventTest : public testing::Test
 {
-public:
+protected:
     void SetUp() override
     {
         std::memset(&m_attr, 0, sizeof(m_attr));
@@ -48,7 +41,9 @@ public:
     FakeSysCalls m_sysCalls;
     perf_event_attr m_attr{};
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 TEST_F(PerfEventTest, PerfEventCPUScope)
 {
     PerfEvent::Config config;
@@ -181,3 +176,4 @@ TEST_F(PerfEventTest, MoveAssignmentTransfersOwnership)
         lhs.value() = std::move(rhs.value());
     }
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
