@@ -10,6 +10,8 @@
 
 #include "perf_event.hpp"
 
+using namespace cpuscope;
+
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members,misc-non-private-member-variables-in-classes)
 MATCHER_P(PerfAttrEq, expected, "")
 {
@@ -64,8 +66,10 @@ TEST_F(PerfEventTest, PerfEventCPUScope)
                 return static_cast<ssize_t>(sizeof(counterValue));
             }));
 
-    auto event = PerfEvent::open(config, m_sysCalls);
+    auto result = PerfEvent::open(config, m_sysCalls);
+    auto event{std::move(result.event)};
 
+    EXPECT_FALSE(result.has_error());
     EXPECT_TRUE(event.has_value());
 
     auto data = event->read_counter();
@@ -86,9 +90,10 @@ TEST_F(PerfEventTest, OpenPerfEventProcessScope)
     EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), 1234, -1, -1, 0)).WillOnce(testing::Return(file_descriptor));
     EXPECT_CALL(m_sysCalls, close(file_descriptor)).WillOnce(testing::Return(0));
 
-    auto res = PerfEvent::open(config, m_sysCalls);
+    auto result = PerfEvent::open(config, m_sysCalls);
 
-    EXPECT_TRUE(res);
+    EXPECT_FALSE(result.has_error());
+    EXPECT_TRUE(result.event.has_value());
 }
 
 TEST_F(PerfEventTest, OpenPerfEventCacheMisses)
@@ -103,9 +108,10 @@ TEST_F(PerfEventTest, OpenPerfEventCacheMisses)
     EXPECT_CALL(m_sysCalls, perf_event_open(PerfAttrEq(m_attr), 1234, -1, -1, 0)).WillOnce(testing::Return(file_descriptor));
     EXPECT_CALL(m_sysCalls, close(file_descriptor)).WillOnce(testing::Return(0));
 
-    auto res = PerfEvent::open(config, m_sysCalls);
+    auto result = PerfEvent::open(config, m_sysCalls);
 
-    EXPECT_TRUE(res);
+    EXPECT_FALSE(result.has_error());
+    EXPECT_TRUE(result.event.has_value());
 }
 
 TEST_F(PerfEventTest, OpenPerfEventWithInvalidCPUConfig)
@@ -114,9 +120,10 @@ TEST_F(PerfEventTest, OpenPerfEventWithInvalidCPUConfig)
     config.cpu = -1;
     config.scope = PerfEvent::Scope::CPU;
 
-    auto res = PerfEvent::open(config, m_sysCalls);
+    auto result = PerfEvent::open(config, m_sysCalls);
 
-    EXPECT_FALSE(res);
+    EXPECT_TRUE(result.has_error());
+    EXPECT_FALSE(result.event.has_value());
 }
 
 TEST_F(PerfEventTest, OpenPerfEventWithInvalidProcessConfig)
@@ -125,9 +132,10 @@ TEST_F(PerfEventTest, OpenPerfEventWithInvalidProcessConfig)
     config.pid = -1;
     config.scope = PerfEvent::Scope::Process;
 
-    auto res = PerfEvent::open(config, m_sysCalls);
+    auto result = PerfEvent::open(config, m_sysCalls);
 
-    EXPECT_FALSE(res);
+    EXPECT_TRUE(result.has_error());
+    EXPECT_FALSE(result.event.has_value());
 }
 
 TEST_F(PerfEventTest, MoveCtorTransfersOwnership)
@@ -143,9 +151,9 @@ TEST_F(PerfEventTest, MoveCtorTransfersOwnership)
     {
         auto original = PerfEvent::open(config, m_sysCalls);
 
-        ASSERT_TRUE(original.has_value());
+        ASSERT_TRUE(original.event.has_value());
 
-        const PerfEvent moved(std::move(original.value()));
+        const PerfEvent moved(std::move(original.event.value()));
     }
 }
 
@@ -170,10 +178,10 @@ TEST_F(PerfEventTest, MoveAssignmentTransfersOwnership)
         auto lhs = PerfEvent::open(config1, m_sysCalls);
         auto rhs = PerfEvent::open(config2, m_sysCalls);
 
-        ASSERT_TRUE(lhs.has_value());
-        ASSERT_TRUE(rhs.has_value());
+        ASSERT_TRUE(lhs.event.has_value());
+        ASSERT_TRUE(rhs.event.has_value());
 
-        lhs.value() = std::move(rhs.value());
+        lhs.event.value() = std::move(rhs.event.value());
     }
 }
 // NOLINTEND(bugprone-unchecked-optional-access)

@@ -9,6 +9,9 @@
 #include <cstring>
 #include <optional>
 
+namespace cpuscope
+{
+
 PerfEvent::PerfEvent(const int file_descriptor, ISysCalls& sysCalls) noexcept : m_file_descriptor(file_descriptor), m_sysCalls(sysCalls) {}
 
 PerfEvent::~PerfEvent() noexcept
@@ -41,11 +44,11 @@ PerfEvent& PerfEvent::operator=(PerfEvent&& other) noexcept
     return *this;
 }
 
-std::optional<PerfEvent> PerfEvent::open(const Config& config, ISysCalls& sysCalls) noexcept
+PerfEventOpenResult PerfEvent::open(const Config& config, ISysCalls& sysCalls) noexcept
 {
     if ((config.scope == Scope::CPU && config.cpu < 0) || (config.scope == Scope::Process && config.pid < 0))
     {
-        return std::nullopt;
+        return PerfEventOpenResult{std::nullopt, PerfEventError{EINVAL, "Invalid configuration: CPU or PID must be set based on the scope"}};
     }
 
     const pid_t pid = Scope::CPU == config.scope ? -1 : config.pid;
@@ -72,10 +75,10 @@ std::optional<PerfEvent> PerfEvent::open(const Config& config, ISysCalls& sysCal
     const auto file_descriptor = sysCalls.perf_event_open(&attr, pid, cpu, -1, 0);
     if (file_descriptor < 0)
     {
-        return std::nullopt;
+        return PerfEventOpenResult{std::nullopt, PerfEventError{errno, "Failed to open perf event"}};
     }
 
-    return std::make_optional<PerfEvent>(PerfEvent(file_descriptor, sysCalls));
+    return PerfEventOpenResult{std::make_optional<PerfEvent>(PerfEvent(file_descriptor, sysCalls)), PerfEventError{0, ""}};
 }
 
 std::optional<uint64_t> PerfEvent::read_counter() noexcept
@@ -110,3 +113,5 @@ ssize_t PerfEvent::LinuxSysCalls::read(int file_descriptor, void* buf, size_t co
 {
     return ::read(file_descriptor, buf, count);
 }
+
+}  // namespace cpuscope

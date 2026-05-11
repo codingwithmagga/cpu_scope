@@ -5,6 +5,12 @@
 
 #include <cstdint>
 #include <optional>
+#include <system_error>
+
+namespace cpuscope
+{
+
+struct PerfEventOpenResult;
 
 class PerfEvent
 {
@@ -53,7 +59,7 @@ public:
     PerfEvent(PerfEvent&& other) noexcept;
     PerfEvent& operator=(PerfEvent&& other) noexcept;
 
-    static std::optional<PerfEvent> open(const Config& config, ISysCalls& sysCalls) noexcept;
+    static PerfEventOpenResult open(const Config& config, ISysCalls& sysCalls) noexcept;
     std::optional<uint64_t> read_counter() noexcept;
 
 private:
@@ -62,3 +68,22 @@ private:
     int m_file_descriptor = -1;
     ISysCalls& m_sysCalls;
 };
+
+struct PerfEventError
+{
+    int code;
+    std::string message;
+};
+
+struct PerfEventOpenResult
+{
+    std::optional<PerfEvent> event;
+    PerfEventError error;
+
+    bool has_error() const noexcept
+    {
+        return error.code != 0;
+    }
+};
+
+}  // namespace cpuscope
