@@ -1,5 +1,4 @@
 add_library(cpuscope_lib STATIC
-  src/cpuscope_lib.cpp
   src/perf_event.cpp
 )
 
