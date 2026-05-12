@@ -1,5 +1,6 @@
 #include <cstring>
 #include <iostream>
+#include <span>
 #include <string_view>
 #include <utility>
 
@@ -13,9 +14,12 @@ int main(int argc, char** argv)
 {
     // Simplified parsing of command-line arguments for demonstration purposes
     // Later add a cli lib like CLI11 or cxxopts for more robust argument parsing
-    for (int i = 1; i < argc; ++i)
+
+    std::span args{argv, static_cast<size_t>(argc)};
+
+    for (auto arg : args)
     {
-        if (std::strcmp(argv[i], "--version") == 0)
+        if (std::strcmp(arg, "--version") == 0)
         {
             std::cout << "cpu_scope version " << VERSION << '\n';
             return 0;
