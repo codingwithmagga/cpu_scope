@@ -15,9 +15,9 @@ int main(int argc, char** argv)
     // Simplified parsing of command-line arguments for demonstration purposes
     // Later add a cli lib like CLI11 or cxxopts for more robust argument parsing
 
-    std::span args{argv, static_cast<size_t>(argc)};
+    const std::span args{argv, static_cast<size_t>(argc)};
 
-    for (auto arg : args)
+    for (auto* arg : args)
     {
         if (std::strcmp(arg, "--version") == 0)
         {
