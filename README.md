@@ -61,7 +61,7 @@ git clone https://github.com/codingwithmagga/cpu_scope.git
 cd cpu_scope
 mkdir build
 cd build
-cmake -S .. -B . -G Ninja \
+cmake -S .. -B . \
   -DCMAKE_BUILD_TYPE=Release \
   -DCPUSCOPE_BUILD_TESTS=ON
 cmake --build .

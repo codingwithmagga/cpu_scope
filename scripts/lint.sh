@@ -10,4 +10,7 @@ fi
 find . \
   \( -path ./build -o -path ./build-* -o -path ./.git -o -path ./scripts \) -prune \
   -o \( -name "*.cpp" \) -print0 \
-  | xargs -0 -n1 clang-tidy -p build
+  | xargs -0 -n1 clang-tidy \
+    -p build \
+    --system-headers=false \
+    --header-filter='^(./)?(cli|lib|tests)/'
