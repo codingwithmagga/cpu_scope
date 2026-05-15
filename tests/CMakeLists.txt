@@ -1,6 +1,6 @@
 add_executable(cpuscope_tests 
     test_perf_event.cpp
-    test_counter_reader.cpp
+    test_cpu_profiler.cpp
     )
 
 target_link_libraries(cpuscope_tests 
